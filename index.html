@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>磯子SC グラウンド利用管理</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Phosphor Icons (屋外高視認性アイコン) -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Google Font: Inter & Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen pb-16 transition-colors duration-300">
+
+  <!-- ================= 1. 固定トップバー ================= -->
+  <header class="sticky top-0 z-40 bg-slate-900 text-white shadow-md border-b border-slate-800">
+    <div class="max-w-md mx-auto px-3 py-2.5 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center shadow-inner">
+          <i class="ph-bold ph-soccer-ball text-lg text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xs font-black tracking-tight leading-tight">磯子SC グラウンド管理</h1>
+          <div class="flex items-center gap-1.5 text-[10px] text-slate-300 font-semibold">
+            <span id="todayDateText">11月8日(日)</span>
+            <span class="text-slate-500">•</span>
+            <span id="seasonBadge" class="text-amber-400 font-bold">夏/冬時間判定中</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 設定ボタン -->
+      <button onclick="openFormSetupModal()" class="flex items-center gap-1 text-[11px] font-bold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 px-2.5 py-1.5 rounded-lg border border-slate-700 transition">
+        <i class="ph-bold ph-gear text-sm"></i>
+        <span>設定</span>
+      </button>
+    </div>
+
+    <!-- 学校選択（3列×2行 グリッド） -->
+    <div class="max-w-md mx-auto px-3 pb-2.5 pt-0.5">
+      <div class="text-[10px] font-bold text-slate-300 flex items-center justify-between mb-1 px-0.5">
+        <span class="flex items-center gap-1">
+          <i class="ph-bold ph-map-pin text-emerald-400"></i>
+          <span>学校を選択：</span>
+        </span>
+        <span class="text-[9px] text-slate-400">タップで切替</span>
+      </div>
+      <div class="grid grid-cols-3 gap-1.5" id="schoolButtonGrid">
+        <!-- JSでボタン動的生成 -->
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= 2. メインコンテンツ（LP型 縦スクロール） ================= -->
+  <main class="max-w-md mx-auto px-3 py-3 space-y-3">
+
+    <!-- 学校サマリーカード（テーマ色連動枠） -->
+    <div id="schoolHeroCard" class="rounded-2xl p-3.5 shadow-md text-white transition-all duration-300 relative overflow-hidden bg-sky-700">
+      <!-- 原本スプレッドシートリンク（右上にコンパクト配置） -->
+      <a href="https://docs.google.com/spreadsheets/d/13SPGn_zfeRglx4oOavV4j45Fh4MmBS6C/edit?usp=sharing" target="_blank" rel="noopener noreferrer" 
+         class="absolute top-3 right-3 bg-white/20 hover:bg-white/30 active:scale-95 backdrop-blur-xs text-white text-[11px] font-black px-2.5 py-1 rounded-lg border border-white/30 flex items-center gap-1 transition shadow-xs z-10">
+        <i class="ph-bold ph-table text-amber-300"></i>
+        <span>原本</span>
+        <i class="ph-bold ph-arrow-square-out text-xs"></i>
+      </a>
+
+      <!-- 学校名 ＆ AED位置 -->
+      <div class="pr-20 mb-2.5">
+        <div class="flex items-center gap-1.5">
+          <span id="heroTypeBadge" class="text-[9px] font-extrabold bg-white/20 text-white px-2 py-0.5 rounded-full border border-white/20">小学校</span>
+          <span class="text-[10px] text-white/80 font-bold flex items-center gap-0.5">
+            <i class="ph-bold ph-first-aid text-rose-300"></i>
+            <span id="heroAedText">アリーナトイレ前</span>
+          </span>
+        </div>
+        <h2 id="heroSchoolName" class="text-xl font-black tracking-tight mt-0.5 text-white drop-shadow-xs">浜小学校</h2>
+      </div>
+
+      <!-- 4つの即応情報パネル -->
+      <div class="grid grid-cols-2 gap-2 text-xs">
+        <!-- パネル1: 利用可能時間 -->
+        <div class="bg-black/25 rounded-xl p-2.5 border border-white/10 flex flex-col justify-between">
+          <div class="flex items-center gap-1 text-white/75 text-[10px] font-bold">
+            <i class="ph-bold ph-clock text-amber-300"></i>
+            <span>利用可能時間</span>
+          </div>
+          <div id="heroTimeRange" class="font-black text-white text-[11px] leading-tight mt-1">9:00〜12:00 / 13:00〜17:00</div>
+          <div class="text-[9px] text-amber-200 font-bold mt-0.5">※完全撤収・時間内退出</div>
+        </div>
+
+        <!-- パネル2: 駐車場・駐輪 -->
+        <div class="bg-black/25 rounded-xl p-2.5 border border-white/10 flex flex-col justify-between">
+          <div class="flex items-center gap-1 text-white/75 text-[10px] font-bold">
+            <i class="ph-bold ph-car text-amber-300"></i>
+            <span>駐車場・駐輪</span>
+          </div>
+          <div id="heroParkingText" class="font-black text-white text-[11px] leading-tight mt-1">3台（正門入って右奥）</div>
+          <div id="heroBikeText" class="text-[9px] text-white/70 mt-0.5">自転車: コミハ裏 / バイク: 正門右</div>
+        </div>
+
+        <!-- パネル3: 鍵・施錠管理 -->
+        <div class="bg-black/25 rounded-xl p-2.5 border border-white/10 flex flex-col justify-between">
+          <div class="flex items-center gap-1 text-white/75 text-[10px] font-bold">
+            <i class="ph-bold ph-key text-amber-300"></i>
+            <span>鍵・施錠</span>
+          </div>
+          <div id="heroKeyText" class="font-black text-white text-[11px] leading-tight mt-1">浜コミポスト内</div>
+          <div id="heroKeyActionText" class="text-[9px] text-white/70 mt-0.5">台帳記入・ポスト返却徹底</div>
+        </div>
+
+        <!-- パネル4: トイレ清掃ルール -->
+        <div class="bg-black/25 rounded-xl p-2.5 border border-white/10 flex flex-col justify-between">
+          <div class="flex items-center gap-1 text-white/75 text-[10px] font-bold">
+            <i class="ph-bold ph-broom text-amber-300"></i>
+            <span>トイレ清掃</span>
+          </div>
+          <div id="heroToiletRule" class="font-black text-white text-[11px] leading-tight mt-1">AM水撒き無 / PMモップ掃き</div>
+          <div id="heroToiletDetail" class="text-[9px] text-white/70 mt-0.5">スリッパ回収・窓施錠徹底</div>
+        </div>
+      </div>
+
+      <!-- 最重要警告バナー（赤枠ハイライト） -->
+      <div id="heroAlertBanner" class="mt-2 bg-rose-500/30 border border-rose-300/40 rounded-xl p-2 flex items-start gap-1.5 text-white">
+        <i class="ph-fill ph-warning-circle text-rose-300 text-sm flex-shrink-0 mt-0.5"></i>
+        <div class="text-[10px] leading-snug">
+          <span class="font-black text-rose-200">【最重要厳禁】</span>
+          <span id="heroWarningText" class="font-bold">学校前・歩道橋下の駐停車厳禁！日祝17時退出時は正門南京錠の施錠を徹底</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= セクション1: 練習後チェックカード（常時表示） ================= -->
+    <section class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm space-y-3">
+      <div class="flex items-center justify-between pb-1 border-b border-slate-100">
+        <div class="flex items-center gap-1.5">
+          <div class="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+            <i class="ph-bold ph-check-square-offset"></i>
+          </div>
+          <h3 class="text-xs font-black text-slate-800">練習後チェックカード</h3>
+          <span class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-bold">1枚ずつ確認</span>
+        </div>
+        <div class="text-[11px] font-black text-slate-500" id="cardProgressText">1 / 5</div>
+      </div>
+
+      <!-- プログレスバー -->
+      <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+        <div id="cardProgressBar" class="bg-emerald-500 h-full transition-all duration-300" style="width: 20%;"></div>
+      </div>
+
+      <!-- 1枚の大きなチェックカード -->
+      <div id="activeCheckCard" class="bg-slate-50 border-2 border-slate-200 rounded-xl p-3.5 space-y-2 transition-all duration-200">
+        <div class="flex items-center justify-between">
+          <span id="cardCategoryBadge" class="text-[10px] font-black uppercase tracking-wider bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md">グラウンド整備</span>
+          <span id="cardStatusBadge" class="text-[10px] font-extrabold text-slate-400 flex items-center gap-1">
+            <i class="ph-bold ph-circle"></i> 未チェック
+          </span>
+        </div>
+        <h4 id="cardTitle" class="text-sm font-black text-slate-900 leading-snug">全面トンボ掛け・ゴミ拾い</h4>
+        <p id="cardDesc" class="text-xs text-slate-600 leading-relaxed font-medium">石灰ラインや足跡の凹凸を消し、トンボは所定位置へ返却。グラウンド内にペットボトル等のゴミがないか確認。</p>
+      </div>
+
+      <!-- めくり＆チェックボタン群 -->
+      <div class="flex items-center gap-2 pt-1">
+        <button onclick="prevCheckCard()" class="px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-700 text-xs font-bold active:scale-95 transition flex items-center gap-1">
+          <i class="ph-bold ph-caret-left"></i> 前へ
+        </button>
+        <button id="btnCheckToggle" onclick="toggleCardCheckAndNext()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 active:scale-98 transition flex items-center justify-center gap-1.5">
+          <i class="ph-bold ph-check-circle text-base"></i>
+          <span>✓ 確認して次へ</span>
+        </button>
+      </div>
+
+      <!-- 翌週リセット -->
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-end">
+        <button onclick="resetCurrentSchoolChecks()" class="text-[11px] font-bold text-slate-400 hover:text-rose-600 flex items-center gap-1 active:scale-95 transition">
+          <i class="ph-bold ph-arrow-counter-clockwise"></i>
+          <span>今週分をリセット</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ================= セクション2: 詳細利用ルール（開閉式） ================= -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <!-- 開閉トグルヘッダー -->
+      <button onclick="toggleSection('ruleSectionContent', 'ruleChevron')" class="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-slate-50 transition">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+            <i class="ph-bold ph-book-open-text text-base"></i>
+          </div>
+          <div>
+            <h3 class="text-xs font-black text-slate-800">各学校の詳細利用ルール</h3>
+            <p class="text-[10px] text-slate-400">鍵・駐車場・スプリンクラー・石灰・AED</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 text-slate-400 text-xs font-bold">
+          <span>表示</span>
+          <i id="ruleChevron" class="ph-bold ph-caret-down transition-transform duration-200"></i>
+        </div>
+      </button>
+
+      <!-- 折りたたみコンテンツ -->
+      <div id="ruleSectionContent" class="hidden p-4 pt-1 border-t border-slate-100 space-y-3">
+        <!-- キーワード選択ドロップダウン -->
+        <div>
+          <label class="block text-[10px] font-black text-slate-500 mb-1">🔍 ルールを絞り込む：</label>
+          <select id="selectRuleKeyword" onchange="filterRulesByKeyword(this.value)" class="w-full bg-slate-50 text-slate-800 font-bold text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500">
+            <option value="">▼ すべての項目を表示</option>
+            <option value="key">🔑 鍵・開錠・施錠手順</option>
+            <option value="parking">🚗 駐車場・駐輪・送迎ルール</option>
+            <option value="toilet">🚽 トイレ清掃・スリッパ</option>
+            <option value="lime">⚪ 石灰・ラインカー・倉庫</option>
+            <option value="sprinkler">💦 スプリンクラー・水撒き</option>
+            <option value="aed">❤️ AED設置場所・緊急連絡</option>
+            <option value="smoke">🚭 喫煙禁止エリア</option>
+            <option value="match">⚽ 交流戦・対外試合ルール</option>
+            <option value="notice">⚠️ 最重要厳禁・注意事項</option>
+          </select>
+        </div>
+
+        <!-- ルール詳細リスト（アコーディオン） -->
+        <div id="ruleItemsList" class="space-y-2">
+          <!-- JSで動的生成 -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= セクション3: 清掃写真の直接撮影＆アップロード（開閉式） ================= -->
+    <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <!-- 開閉トグルヘッダー -->
+      <button onclick="toggleSection('cleanSectionContent', 'cleanChevron')" class="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-slate-50 transition">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+            <i class="ph-bold ph-camera text-base"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-xs font-black text-slate-800">清掃証拠写真の撮影＆アップロード</h3>
+              <span id="uploadedBadgeCount" class="text-[10px] bg-emerald-600 text-white font-extrabold px-1.5 py-0.2 rounded-full">0枚</span>
+            </div>
+            <p class="text-[10px] text-slate-400">フォーム不要・その場でカメラ撮影して蓄積</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 text-slate-400 text-xs font-bold">
+          <span>表示</span>
+          <i id="cleanChevron" class="ph-bold ph-caret-down transition-transform duration-200"></i>
+        </div>
+      </button>
+
+      <!-- 折りたたみコンテンツ -->
+      <div id="cleanSectionContent" class="hidden p-4 pt-1 border-t border-slate-100 space-y-3">
+        <!-- カテゴリ・撮影対象選択 -->
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 mb-0.5">担当カテゴリー：</label>
+            <select id="selectCategory" class="w-full bg-slate-50 text-slate-800 font-bold text-xs p-2 rounded-xl border border-slate-300">
+              <option value="U-7 (1年)">U-7 (1年生)</option>
+              <option value="U-8 (2年)">U-8 (2年生)</option>
+              <option value="U-9 (3年)">U-9 (3年生)</option>
+              <option value="U-10 (4年)">U-10 (4年生)</option>
+              <option value="U-11 (5年)">U-11 (5年生)</option>
+              <option value="U-12 (6年)">U-12 (6年生)</option>
+              <option value="少女/キッズ">少女 / キッズ</option>
+              <option value="コーチ/当番">コーチ / 当番</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-black text-slate-500 mb-0.5">撮影対象：</label>
+            <select id="selectPhotoTarget" class="w-full bg-slate-50 text-slate-800 font-bold text-xs p-2 rounded-xl border border-slate-300">
+              <option value="トイレ清掃後">🚽 トイレ清掃後</option>
+              <option value="グラウンド整備後">⚽ トンボ掛け・整備後</option>
+              <option value="門・倉庫の施錠">🔒 門・倉庫・各所施錠</option>
+              <option value="その他・設備">📸 その他・設備状態</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- カメラ撮影ボタン（直接カメラ起動） -->
+        <div>
+          <label class="block cursor-pointer">
+            <input type="file" accept="image/*" capture="environment" id="directCameraInput" class="hidden" onchange="handleDirectCapture(event)">
+            <div class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black py-3 px-4 rounded-xl shadow-md shadow-emerald-700/20 flex items-center justify-center gap-2 transition text-xs">
+              <i class="ph-bold ph-camera text-lg"></i>
+              <span>カメラを起動して撮影する</span>
+            </div>
+          </label>
+        </div>
+
+        <!-- 撮影直後のプレビュー ＆ アップロード確定枠 -->
+        <div id="pendingUploadArea" class="hidden bg-slate-50 border-2 border-emerald-400 rounded-xl p-3 space-y-2">
+          <div class="flex items-center justify-between text-[11px] font-black text-emerald-800">
+            <span class="flex items-center gap-1">
+              <i class="ph-bold ph-sparkle text-amber-500"></i>
+              <span>撮影完了（プレビュー確認）</span>
+            </span>
+            <button onclick="cancelPendingPhoto()" class="text-slate-400 hover:text-rose-600 text-xs font-bold">
+              取り消し
+            </button>
+          </div>
+
+          <div class="relative rounded-lg overflow-hidden border border-slate-200 bg-black">
+            <img id="pendingImgPreview" src="" alt="撮影写真" class="w-full h-44 object-cover">
+            <div class="absolute bottom-0 inset-x-0 bg-black/70 backdrop-blur-xs text-white p-2 text-[10px] flex items-center justify-between">
+              <span id="pendingMetaText">浜小学校 • トイレ清掃後</span>
+              <span id="pendingTimeText">17:00</span>
+            </div>
+          </div>
+
+          <button id="btnConfirmUpload" onclick="uploadPendingPhoto()" class="w-full bg-emerald-700 hover:bg-emerald-800 active:scale-[0.99] text-white font-black py-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-1.5 transition">
+            <i class="ph-bold ph-cloud-arrow-up text-base text-amber-300"></i>
+            <span>この写真をアップロード保存する</span>
+          </button>
+        </div>
+
+        <!-- 蓄積された写真ギャラリー（アルバム） -->
+        <div class="pt-2">
+          <div class="flex items-center justify-between pb-1.5 border-b border-slate-200">
+            <div class="flex items-center gap-1 text-[11px] font-black text-slate-700">
+              <i class="ph-bold ph-images text-emerald-600"></i>
+              <span>蓄積された写真ログ（直近）</span>
+            </div>
+            <button onclick="clearAllStoredPhotos()" class="text-[10px] font-bold text-slate-400 hover:text-rose-600">
+              全削除
+            </button>
+          </div>
+
+          <!-- 写真一覧コンテナ -->
+          <div id="photoGalleryList" class="mt-2 grid grid-cols-2 gap-2">
+            <!-- JSで写真カードを動的生成 -->
+          </div>
+          <div id="emptyGalleryNotice" class="text-center py-6 text-slate-400 text-xs">
+            <i class="ph-bold ph-image-square text-3xl mb-1 text-slate-300 block"></i>
+            まだアップロードされた写真はありません
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= 3. モーダル ＆ トースト ================= -->
+
+  <!-- 写真拡大モーダル -->
+  <div id="modalPhotoView" class="fixed inset-0 z-50 bg-black/90 hidden flex flex-col items-center justify-center p-3" onclick="closePhotoModal()">
+    <div class="relative max-w-sm w-full bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border border-white/10" onclick="event.stopPropagation()">
+      <div class="p-3 bg-black/60 text-white flex items-center justify-between border-b border-white/10">
+        <div>
+          <h4 id="modalPhotoTitle" class="text-xs font-black">浜小学校 • トイレ清掃後</h4>
+          <p id="modalPhotoSub" class="text-[10px] text-slate-300">11/8 17:00 • U-10</p>
+        </div>
+        <button onclick="closePhotoModal()" class="w-7 h-7 rounded-full bg-white/20 text-white flex items-center justify-center hover:bg-white/30">
+          <i class="ph-bold ph-x"></i>
+        </button>
+      </div>
+      <img id="modalPhotoImg" src="" alt="拡大写真" class="w-full max-h-[65vh] object-contain bg-black">
+      <div class="p-2.5 bg-black/60 flex justify-end gap-2">
+        <button id="modalBtnDelete" class="text-rose-400 hover:text-rose-300 text-xs font-bold px-2 py-1 flex items-center gap-1">
+          <i class="ph-bold ph-trash"></i> 削除
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Googleドライブ保存先API設定モーダル -->
+  <div id="modalFormSetup" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-3.5">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="text-sm font-black text-slate-800 flex items-center gap-1.5">
+          <i class="ph-bold ph-gear"></i>
+          <span>写真保存先設定（Googleドライブ）</span>
+        </h3>
+        <button onclick="closeFormSetupModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="ph-bold ph-x text-lg"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Googleドライブの専用フォルダへ直接写真を溜めるためのGAS WebアプリURLを設定できます（未設定でも本アプリ内に自動で写真が蓄積されます）。
+      </p>
+      <div>
+        <label class="block text-[11px] font-bold text-slate-700 mb-1">GAS Web App URL (任意)</label>
+        <input type="url" id="inputFormUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500">
+      </div>
+      <div class="flex gap-2 pt-1">
+        <button onclick="saveFormUrl()" class="flex-1 bg-sky-600 hover:bg-sky-700 text-white text-xs font-black py-2.5 rounded-xl transition shadow">
+          保存する
+        </button>
+        <button onclick="closeFormSetupModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2.5 rounded-xl transition">
+          閉じる
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-white text-xs font-black px-4 py-2.5 rounded-full shadow-lg backdrop-blur-xs transition-all duration-200 opacity-0 pointer-events-none flex items-center gap-2">
+    <i class="ph-bold ph-check text-emerald-400"></i>
+    <span id="toastMsg">通知メッセージ</span>
+  </div>
+
+  <!-- ================= 4. JavaScript ロジック ================= -->
+  <script>
+    // 全6会場の統合マスタデータ
+    const SCHOOLS = [
+      {
+        id: "hama",
+        name: "浜小学校",
+        shortName: "浜小",
+        type: "小学校グラウンド",
+        colorClass: "bg-sky-700",
+        aed: "アリーナトイレ前",
+        timeRangeSummer: "9:00〜12:00 / 13:00〜17:00",
+        timeRangeWinter: "9:00〜12:00 / 13:00〜17:00",
+        parking: "3台（正門入って右奥）",
+        bike: "自転車: コミハ裏 / バイク: 正門右",
+        keyPlace: "浜コミポスト内（鍵台帳記入）",
+        keyAction: "アリーナ・倉庫・窓施錠確認",
+        toiletRule: "AM水撒き無 / PMモップ掃き",
+        toiletDetail: "スリッパ回収・窓施錠徹底",
+        warningText: "学校前・歩道橋下の駐停車厳禁！日祝17時退出時は正門南京錠の施錠を徹底",
+        checkItems: [
+          { cat: "グラウンド整備", title: "全面トンボ掛け・ゴミ拾い", desc: "石灰ラインや足跡の凹凸を消し、トンボは所定位置へ返却。ペットボトル等のゴミゼロ徹底。" },
+          { cat: "トイレ清掃", title: "便器・床・スリッパ清掃", desc: "便器をブラシ清掃。通路タイル掃き掃除。スリッパ（各2足）回収。窓の鍵を確実に施錠。" },
+          { cat: "倉庫・備品", title: "倉庫施錠・石灰棚確認", desc: "グラウンド倉庫を施錠（南京錠が固い時はアリーナ女子トイレの鍵穴スプレー使用）。" },
+          { cat: "施錠・鍵返却", title: "アリーナ玄関・校舎側施錠＆ポスト返却", desc: "アリーナ内側・校舎側を施錠。鍵台帳・利用台帳に記入し、鍵を浜コミポストへ確実に返却。" },
+          { cat: "正門施錠", title: "日祝17時以降の正門南京錠施錠", desc: "正門を出るのが17時を過ぎた場合は必ず正門の南京錠を施錠すること。" }
+        ],
+        rules: [
+          { group: "key", title: "🔑 鍵・開錠・施錠手順", content: "・鍵袋内：浜コミポストの鍵\n・ポスト内：鍵台帳、アリーナ・グランド倉庫・スプリンクラー各鍵\n①利用台帳（アリーナ下駄箱）に日付・クラブ名・利用時間・コーチサインを記入\n②鍵管理ノートに鍵の持出し・返却を記入\n③最終利用時施錠確認（アリーナ玄関、内側＋校舎側、グラウンド倉庫、男女トイレ窓の鍵）\n④終了時、ポスト内の鍵を必ずポストに返却（他団体も使用するため）" },
+          { group: "parking", title: "🚗 駐車場・駐輪・送迎ルール", content: "・駐車場：3台（正門入って右奥に駐車、必ず駐車証を掲示・コーチのみ利用可）\n・駐車証忘れ時はポスト内の予備を使用\n・子供送迎時の校内乗り入れ厳禁！\n・学校前の周辺道路、歩道橋下も一時的でも駐停車・乗り降り禁止（クレーム多数のため厳守）\n・自転車置き場：コミュニティハウスの裏\n・バイク置き場：正門右側付近、校舎側" },
+          { group: "toilet", title: "🚽 トイレ掃除・スリッパ", content: "・必ずAM・PM利用終了時に大人が確認\n・各カテゴリのスリッパ（2足）を使用し、練習後は必ず回収\n・汚れていたら便器をブラシで洗う（ブラシは個室内）\n・窓の鍵・戸締りチェック\n・トイレ内はモップ掛け不要\n・アリーナ入口〜グラウンド水道付近までの通路タイルを掃き掃除（最終利用時は汚れ箇所のみモップ掛け）" },
+          { group: "lime", title: "⚪ 石灰・ラインカー", content: "・年1回、文化スポーツクラブ会費からグラウンド団体で購入して倉庫に搬入。各クラブの棚に補充。" },
+          { group: "sprinkler", title: "💦 スプリンクラー", content: "・鍵：ポスト内\n・注意事項：使用後は利用台帳に記入すること。" },
+          { group: "aed", title: "❤️ AED設置場所・緊急連絡", content: "・場所：アリーナユニバーサルトイレ前\n・注意事項：使用後は事務局へ連絡→文化スポーツと学校に報告。\n※不必要にパッケージを開封した場合、費用負担が発生するため注意。" },
+          { group: "smoke", title: "🚭 喫煙禁止エリア", content: "・学校敷地内および学校に隣接する道路の範囲（対面側も含む）では喫煙NG。\n・特に歩道橋下での喫煙は厳禁。複数人で歩道に広がっての喫煙は絶対にしないこと。" },
+          { group: "match", title: "⚽ 交流戦・対外試合", content: "・交流戦可。学校前の道路での駐停車や喫煙のないよう、相手チームに周知徹底すること。" }
+        ]
+      },
+      {
+        id: "takigashira",
+        name: "滝頭小学校",
+        shortName: "滝頭小",
+        type: "小学校グラウンド",
+        colorClass: "bg-amber-600",
+        aed: "体育館入口正面",
+        timeRangeSummer: "夏 8:00〜12:00 / 13:00〜17:00",
+        timeRangeWinter: "冬 8:00〜12:00 / 13:00〜16:30",
+        parking: "1台（門入って右側・体育館側）",
+        bike: "正門内に整列して駐輪",
+        keyPlace: "鍵袋（門南京錠・男子トイレ鍵）",
+        keyAction: "女子トイレ鍵は外倉庫・要返却",
+        toiletRule: "備え付け掃除用具で清掃",
+        toiletDetail: "窓施錠・体育館使用団体への声掛け",
+        warningText: "門入って左側の職員スペース駐車は絶対厳禁！野球石灰使用禁止・猫除け機器にボール当てない",
+        checkItems: [
+          { cat: "グラウンド整備", title: "全面トンボ掛け・ゴミ拾い", desc: "グラウンドを均等に整地。備品を所定位置へ戻し、ゴミを残さない。" },
+          { cat: "注意機器", title: "猫除け機器の安全確認", desc: "校内に備え付けてある猫除け機器にボール等が当たっていないか確認。" },
+          { cat: "トイレ清掃", title: "トイレ清掃・女子トイレ鍵返却", desc: "備え付け道具で清掃・窓施錠。女子トイレの鍵を必ず外倉庫の中に戻す。" },
+          { cat: "駐車確認", title: "指定位置（右側1台）駐車の確認", desc: "左側教職員スペースに車が停まっていないことを確認。" },
+          { cat: "施錠・鍵返却", title: "門の南京錠施錠", desc: "体育館利用団体がいない場合はトイレ施錠確認の上、正門を施錠。" }
+        ],
+        rules: [
+          { group: "key", title: "🔑 鍵・開錠・施錠手順", content: "・鍵袋内：門の南京錠の鍵、男子トイレの鍵（外からの鍵）\n①女子トイレの鍵は外倉庫の中にある。外利用チームで使用しているため、使用後は必ず元に戻す。\n②終了時、まだ体育館を使用している団体がいる場合、トイレの鍵を閉めるか声をかける。" },
+          { group: "parking", title: "🚗 駐車場・駐輪・送迎ルール", content: "・駐車場：1台のみ。体育館側（門を入って右側）に駐車。\n※門を入って左側は教職員の駐車スペースのため絶対に駐車不可！\n・送迎での校内乗り入れ禁止。正門付近での路上駐車・待機も禁止。\n・自転車・バイク：OK。正門内に整列して駐輪。" },
+          { group: "toilet", title: "🚽 トイレ掃除", content: "・備え付けの掃除道具で清掃。\n・窓の鍵、戸締りチェック。\n※体育館使用時は終了時に声掛けを行う。" },
+          { group: "lime", title: "⚪ 石灰", content: "※石灰は野球チームが折半して購入しているため使用不可！" },
+          { group: "sprinkler", title: "💦 スプリンクラー", content: "・鍵：校舎倉庫内、左棚にマグネット貼付\n・操作盤：藤棚奥の職員室出入口、校庭から向かって右側校舎壁\n・手順：運転スイッチ2回押す\n・注意：マンション側（東側）使用不可。1台だけの作動不可（校舎側→校舎反対→西側の順で作動）。設定時間変更不可。散水中近づかない。" },
+          { group: "aed", title: "❤️ AED設置場所・緊急連絡", content: "・場所：体育館入口正面\n・注意事項：使用後は事務局へ報告。" },
+          { group: "smoke", title: "🚭 喫煙禁止エリア", content: "・近隣クレームが非常に多いため、学校敷地内・学校に隣接する道路での喫煙厳禁！" },
+          { group: "notice", title: "⚠️ 特記事項", content: "・第1・第3土曜日は11:00〜14:00までキッズクラブが使用するためグラウンド使用不可。\n・校内に猫除けの機器が備え付けてあるのでボールなどが当たらないよう注意。\n・コーチ陣の声掛け・罵声に聞こえてしまうような声援は控える（近隣クレーム防止）。" },
+          { group: "match", title: "⚽ 交流戦ルール", content: "・交流戦可。対戦相手は5チームまでOK。\n・車は各チーム1台まで（2週間前までに学校へ連絡し駐車証申請要）。\n・当日はダッシュボードに開放団体名が表示されたものを置くこと。" }
+        ]
+      },
+      {
+        id: "isogo",
+        name: "磯子小学校",
+        shortName: "磯子小",
+        type: "小学校グラウンド",
+        colorClass: "bg-emerald-700",
+        aed: "体育館（体育館利用団体がいる時のみ）",
+        timeRangeSummer: "8:30〜12:30 / 12:30〜17:00",
+        timeRangeWinter: "8:30〜12:30 / 12:30〜17:00",
+        parking: "2台（トイレ前スペース縦列駐車）",
+        bike: "通路邪魔しないよう校舎側寄せ駐輪",
+        keyPlace: "鍵袋（門南京錠・トイレ・倉庫）",
+        keyAction: "利用団体証を正門板留め・台帳記入",
+        toiletRule: "AM水撒き無 / PM最終は床水流し",
+        toiletDetail: "外扉施錠（体育館利用有無問わず）",
+        warningText: "8:30前の開門禁止！真照寺付近〜浜マーケット道路での路上駐車・送迎乗り入れ厳禁",
+        checkItems: [
+          { cat: "グラウンド整備", title: "全面トンボ掛け・倉庫片付け", desc: "トンボを所定位置に戻す。石灰倉庫周辺の清掃。" },
+          { cat: "トイレ清掃", title: "トイレ清掃（PM最終は床水流し）", desc: "AMは水撒き無。PM最終利用時は男子トイレの道具で床に水を流して掃除。外扉を施錠。" },
+          { cat: "利用団体証", title: "利用団体証の回収・倉庫保管", desc: "正門に留めていた利用団体証を板ごと回収し、体育館倉庫に戻す。" },
+          { cat: "台帳記入", title: "利用台帳への記入（コーチサイン）", desc: "クラブ名、日付、利用時間、人数、確認者（コーチ）サインを記入。" },
+          { cat: "施錠・鍵返却", title: "門の南京錠施錠", desc: "正門南京錠を確実に施錠し、鍵袋を管理担当へ返却。" }
+        ],
+        rules: [
+          { group: "key", title: "🔑 鍵・開錠・施錠手順", content: "・鍵袋内：門の南京錠の鍵、トイレの鍵、体育館倉庫の鍵\n①利用団体証（倉庫の中）を、必ず正門に板ごと留める（クリップ付き）\n②利用台帳に、クラブ名・日付・利用時間・人数・確認者（コーチ）サインを記入\n③練習終了時、トイレの外から入る扉は体育館利用団体の有無にかかわらず必ず施錠！" },
+          { group: "parking", title: "🚗 駐車場・駐輪・送迎ルール", content: "・駐車場：2台（トイレ前のスペースに縦列駐車。必ず駐車証を掲示）\n・真照寺付近から浜マーケットまでの道路、および正門付近での路上駐車・送迎乗り入れは絶対に避ける！\n・自転車・バイク：OK。通路を邪魔しないよう校舎側に寄せて駐輪。" },
+          { group: "toilet", title: "🚽 トイレ掃除", content: "【AM利用時】水撒きは無しでの掃除。\n【PM利用時】最後に使用したカテゴリーは床に水を流して掃除（男子トイレに掃除用具あり）。\n※トイレの鍵の閉め忘れがないよう必ず確認（外扉施錠）。" },
+          { group: "lime", title: "⚪ 石灰", content: "・トンボの入っている体育館側の倉庫の物を使用。\n※ゴール後方の学校用倉庫の石灰・コーンは使用禁止！" },
+          { group: "sprinkler", title: "💦 スプリンクラー", content: "※スプリンクラー利用不可。" },
+          { group: "aed", title: "❤️ AED設置場所・緊急連絡", content: "・場所：体育館\n※ただし体育館利用団体がいる場合のみ使用可能。\n・使用後は事務局へ連絡→翌日学校へ報告。" },
+          { group: "smoke", title: "🚭 喫煙禁止エリア", content: "・学校敷地内、小学校敷地に接する道路、真照寺付近での喫煙は厳禁。" },
+          { group: "match", title: "⚽ 交流戦ルール", content: "・交流戦可。騒音苦情防止のため磯子SC含め2チームまで（申請不要）。\n※3チーム以上になる場合は近所に事前挨拶が必要なため事前相談のこと。苦情が出た場合は交流戦禁止となります。" }
+        ]
+      },
+      {
+        id: "okamura",
+        name: "岡村小学校",
+        shortName: "岡小",
+        type: "小学校グラウンド",
+        colorClass: "bg-purple-700",
+        aed: "体育館（鍵は開放倉庫内ダイヤル錠内）",
+        timeRangeSummer: "土曜 13:00〜17:00（時間3分割）",
+        timeRangeWinter: "土曜 13:00〜17:00（時間3分割）",
+        parking: "1台（坂を上がった一番奥駐車場）",
+        bike: "門入って右フェンス沿い1列 / 左奥",
+        keyPlace: "鍵袋（通用門・駐車場・トイレ・団体証）",
+        keyAction: "毎回利用時キッズクラブへ挨拶徹底",
+        toiletRule: "水撒き厳禁！土足厳禁（スリッパ）",
+        toiletDetail: "換気扇OFF・クレセント鍵つまみ下げ",
+        warningText: "手前の門は進入禁止（一番奥の駐車場門のみ利用）！退出時は3箇所の門すべての施錠確認必須",
+        checkItems: [
+          { cat: "グラウンド整備", title: "全面トンボ掛け・整地", desc: "使用した範囲を丁寧にトンボ掛け。ゴミの持ち帰り確認。" },
+          { cat: "トイレ清掃", title: "トイレ清掃（水撒き厳禁）・換気扇OFF", desc: "土足厳禁。水撒き厳禁。除菌シート詰まり注意。換気扇OFF、窓クレセント錠のつまみを下げる。" },
+          { cat: "日誌記入", title: "利用日誌・外部活動報告書の記入", desc: "倉庫内利用日誌に記入。対外試合時は外部団体活動報告書に記入。" },
+          { cat: "キッズ挨拶", title: "練習終了時キッズクラブへ鍵の相互確認", desc: "「磯子SCです。パーキングと通用門の鍵はどうしますか？」と施錠確認を徹底。" },
+          { cat: "施錠確認", title: "3箇所の入口の門すべての施錠確認", desc: "開けていなくても3箇所の入口門すべての施錠を確認すること！" }
+        ],
+        rules: [
+          { group: "key", title: "🔑 鍵・開錠・施錠手順", content: "・鍵袋内：通用門の鍵、パーキングの鍵、トイレの鍵、利用団体証\n①毎回グラウンド利用時にはキッズクラブへ挨拶に行く（チーム名と使用時間を伝える）\n②倉庫内の利用日誌に記入（対外試合・合同練習時は【外部団体との活動報告書】にも記入）\n③最終利用時：施錠、トイレ換気扇OFF、クレセント鍵つまみ下げを確認（キッズ開校中除く）\n④最後の時間帯利用時：必ずキッズクラブへ「磯子SCです。練習終わりましたが、パーキングと通用門の鍵はどうしますか？」と相互確認を行うこと。" },
+          { group: "parking", title: "🚗 駐車場・駐輪・送迎ルール", content: "・門の利用：坂を上がって一番奥（駐車場）の門のみ使用すること！手前の門は利用禁止。\n・駐車場：1台のみ利用可能（車での送迎は坂の下まで徹底）。\n・駐輪：門を入って右側フェンスに沿って1列に邪魔にならないように置く。または突き当たり左奥スペース。" },
+          { group: "toilet", title: "🚽 トイレ掃除", content: "・土足厳禁（入り口でスリッパに履き替える）。\n・水撒きは無しでの掃除。外からの砂が残らないよう注意。\n・キッズクラブがいない場合、必ず鍵の確認・換気扇OFFを確認。\n※以前トイレが詰まったことがあるため、流せる除菌シートの使用時は十分注意すること！" },
+          { group: "lime", title: "⚪ 石灰", content: "・石灰の保管・使用状況はグラウンド係の指示に従ってください。" },
+          { group: "sprinkler", title: "💦 スプリンクラー", content: "・鍵：スポーツクラブ専用倉庫内\n・操作盤：校舎外壁（保育室前）\n※使用前にキッズクラブさんに必ず声掛けすること。" },
+          { group: "aed", title: "❤️ AED設置場所・緊急連絡", content: "・場所：体育館\n・注意：体育館の鍵は校庭の学校開放用倉庫内、ダイヤル式南京錠の内側に収納（番号は鍵袋メモ参照）。" },
+          { group: "smoke", title: "🚭 喫煙禁止エリア", content: "・学校敷地内および学校に隣接する道路の範囲（対面側含む）は喫煙NG。" },
+          { group: "notice", title: "⚠️ 最重要厳禁事項", content: "・帰りは開錠していなくても必ず3箇所の入口の鍵の施錠確認をすること！（過去に施錠確認が甘いとの指摘あり）。" }
+        ]
+      },
+      {
+        id: "shiomidai",
+        name: "汐見台小学校",
+        shortName: "汐小",
+        type: "小学校グラウンド",
+        colorClass: "bg-teal-700",
+        aed: "プール横 障害者用トイレ内",
+        timeRangeSummer: "夏 9:00〜13:30 / 13:30〜18:00",
+        timeRangeWinter: "冬 9:00〜12:30 / 12:30〜16:30",
+        parking: "3台（L字型駐車・同一チーム縦並び）",
+        bike: "北門駐輪場入り口右側に整列駐輪",
+        keyPlace: "鍵袋（門・スプリンクラー・トイレ・石灰）",
+        keyAction: "北門は必ず開錠・利用団体証掲示",
+        toiletRule: "水撒き厳禁！男子トイレ内用具使用",
+        toiletDetail: "人感センサー（電気スイッチ触らない）",
+        warningText: "大ゴール使用禁止（小ゴール＋砂袋固定のみ）！病院側道路での乗降・待機は絶対厳禁",
+        checkItems: [
+          { cat: "グラウンド整備", title: "全面トンボ掛け・朝礼台原状復帰", desc: "朝礼台を移動した場合は元の位置へ戻す。全面トンボ掛け・ゴミ拾い。" },
+          { cat: "ゴール片付け", title: "小ゴール安全固定・大ゴール未使用確認", desc: "大ゴールは使用禁止。小ゴールはネット付きを砂袋で固定し、終了後はプール横へ。" },
+          { cat: "トイレ清掃", title: "下校庭プール横トイレ清掃（水撒き厳禁）", desc: "床の砂をブラシで外へ掃き出す。洗面台拭き（タオル洗濯返却）。電気スイッチは触らない（自動）。" },
+          { cat: "石灰倉庫", title: "石灰残量確認・倉庫施錠", desc: "下校庭石灰倉庫を施錠。最後の1袋を開けた場合はグラウンド係へ連絡。" },
+          { cat: "施錠・門", title: "出入りした門の施錠・団体証回収", desc: "北門・正門の利用者団体証を回収。他団体がいなければ確実に門を施錠。" }
+        ],
+        rules: [
+          { group: "key", title: "🔑 鍵・開錠・施錠手順", content: "・鍵袋内：門の鍵、スプリンクラーの鍵、プール横トイレの鍵、石灰倉庫の鍵、利用団体証（2枚）\n・学校施設利用時に出入りする門に利用団体証をかけておく。\n・自転車で来る部員・保護者のため、北門は必ず開錠し利用者証をかける。\n・退出時は利用者証を回収し、他に利用者証がかかっていなければ門を施錠する。\n※出入りは正門横の小さい門を利用。" },
+          { group: "parking", title: "🚗 駐車場・駐輪・送迎ルール", content: "・駐車場：3台（利用時は駐車証＋連絡先メモを外から見える位置に置く）。\n・駐車方法：他車が出られるよう、同じチームで前後L字型に詰めて駐車すること。\n・送迎注意：病院側の道路での乗降・待機は救急車両の妨げになるため絶対厳禁！\n・西門（上校庭門）も駐停車は速やかに行う。下校庭停車は南門から下に停め、速やかに移動。\n・駐輪：北門駐輪場入り口右側に整列駐輪。" },
+          { group: "toilet", title: "🚽 トイレ掃除", content: "・プール横のトイレを使用（男子トイレ内用具入れのスリッパ・清掃道具を利用）。\n・床の砂をブラシで外へ出す。便器・洗面台を拭く（使用したタオルは洗って元の場所へ）。\n※床が乾かなくなるため水撒きは極力避ける（水撒き原則禁止）。\n・電気は自動点灯のためスイッチは触らないこと。\n・トイレットペーパー残りが4ロールになったら汐小係へ連絡。" },
+          { group: "lime", title: "⚪ 石灰・ゴール", content: "・下校庭に石灰倉庫あり（最後の一袋を開けた際はグラウンド係へ連絡・持ち出し禁止）。\n・ラインカーは各団体で持ち込み（保管不可）。\n・大ゴールは使用禁止！小ゴール（ネットあり）のみ砂袋で固定して使用可。" },
+          { group: "sprinkler", title: "💦 スプリンクラー", content: "・下校庭スプリンクラー使用可能（操作盤は朝礼台付近階段）。\n・上校庭：道路側倉庫付近に50mホースあり（水栓はコーチバッグ内）。\n・手洗いは校舎側の水道を使用すること（トイレ詰まり防止）。" },
+          { group: "aed", title: "❤️ AED設置場所・緊急連絡", content: "・場所：プール横 障害者用トイレ内\n・注意事項：活動開始時・終了時にAED未開封か確認。使用時はパッド交換費用が団体負担となるため事務局長へ即連絡。" },
+          { group: "smoke", title: "🚭 喫煙禁止エリア", content: "・学校敷地内および学校に隣接する道路の範囲（対面側含む）は喫煙厳禁。" },
+          { group: "match", title: "⚽ 交流戦ルール", content: "・交流戦可。追加駐車（予備最大2台＋他団体枠）希望時は木曜午前までにグラウンド係へ連絡確定。\n・相手チーム車にもチーム名・連絡先を記載した駐車証を必ず置くこと。" }
+        ]
+      },
+      {
+        id: "kuraki",
+        name: "久良岐公園",
+        shortName: "久良岐",
+        type: "公園グラウンド",
+        colorClass: "bg-rose-700",
+        aed: "管理事務所",
+        timeRangeSummer: "9:00〜13:00 / 13:00〜17:00",
+        timeRangeWinter: "9:00〜13:00 / 13:00〜17:00",
+        parking: "有料駐車場有（制限なし・常識範囲内）",
+        bike: "駐車場入り口横の駐輪場を利用",
+        keyPlace: "鍵袋なし（管理事務所で受付）",
+        keyAction: "事務所で使用カード提示・利用料支払",
+        toiletRule: "公園公衆トイレ利用（当番清掃なし）",
+        toiletDetail: "夏場の見守り当番は別途必要",
+        warningText: "テント・タープ使用禁止！ペグ（杭）の打ち込み禁止！利用料1時間1300円はお釣りのないよう現金持参",
+        checkItems: [
+          { cat: "受付・支払い", title: "管理事務所での料金支払い（現金）", desc: "利用団体カード持参。1時間1300円をお釣りのないよう現金で支払う。" },
+          { cat: "コーン設営", title: "青コーンの設置・整地", desc: "青いコーンをポールに合わせて並べる。終了後はコーンを倉庫へ返却。" },
+          { cat: "禁止事項確認", title: "テント・杭打ちなしの確認", desc: "テントやタープの設営、ペグの打ち込みがないことを確認。" },
+          { cat: "グラウンド整備", title: "全面トンボ掛け・ゴミ持ち帰り", desc: "公園倉庫内のトンボで整備。公園内のゴミゼロ確認。" },
+          { cat: "コーン返却", title: "コーン片付け・管理所へ終了報告", desc: "コーンを公園倉庫に戻し、忘れ物がないことを確認。" }
+        ],
+        rules: [
+          { group: "key", title: "🔑 鍵・受付手順", content: "・鍵袋なし。\n・使用時に駐車場付近の管理事務所に使用団体カードを持参し、料金を支払いに行く。\n・利用料金：1時間1300円（お釣りのないよう現金で用意すること）。\n・青いコーンをポールに合わせて並べ、終了後は倉庫に戻す。" },
+          { group: "parking", title: "🚗 駐車場・駐輪・送迎ルール", content: "・有料駐車場あり（台数制限なし、常識的な範囲で利用）。\n・自転車・バイク：駐車場入り口横の駐輪場を利用（公園内への乗り入れNG）。" },
+          { group: "toilet", title: "🚽 当番・トイレ", content: "・当番清掃なし（※夏場の見守り当番は別途必要）。\n・公園内の公衆トイレを利用。" },
+          { group: "lime", title: "⚪ 石灰", content: "・公園倉庫内の石灰を利用可能。" },
+          { group: "sprinkler", title: "💦 スプリンクラー", content: "・スプリンクラーなし。" },
+          { group: "aed", title: "❤️ AED設置場所・緊急連絡", content: "・場所：管理事務所" },
+          { group: "smoke", title: "🚭 喫煙禁止エリア", content: "・グラウンド上および公園敷地内での喫煙NG。" },
+          { group: "notice", title: "⚠️ 禁止事項・注意事項", content: "・テント、タープの使用禁止！ペグ（杭）の打ち込み禁止！\n・公園敷地内で活動している一般利用者がいた場合は丁寧な説明で移動の理解を求めること。" },
+          { group: "match", title: "⚽ 交流戦ルール", content: "・交流戦可。" }
+        ]
+      }
+    ];
+
+    // アプリ状態
+    let currentSchoolId = "hama";
+    let currentCardIndex = 0;
+    let checkedMap = {};
+    
+    // 写真ストレージ管理
+    let uploadedPhotos = [];
+    let pendingPhotoData = null;
+
+    function getCurrentSchool() {
+      return SCHOOLS.find(s => s.id === currentSchoolId) || SCHOOLS[0];
+    }
+
+    function isSummerSeason() {
+      const month = new Date().getMonth() + 1;
+      return (month >= 3 && month <= 9); // 3〜9月は夏時間
+    }
+
+    // ================= 初期化 =================
+    function initApp() {
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const date = now.getDate();
+      const dayNames = ["日", "月", "火", "水", "木", "金", "土"];
+      document.getElementById("todayDateText").innerText = `${month}月${date}日(${dayNames[now.getDay()]})`;
+
+      const summer = isSummerSeason();
+      const badge = document.getElementById("seasonBadge");
+      badge.innerText = summer ? "夏時間適用中(3〜9月)" : "冬時間適用中(10〜2月)";
+
+      try {
+        const saved = localStorage.getItem("isogo_sc_checks_v6");
+        if (saved) checkedMap = JSON.parse(saved);
+
+        const savedPhotos = localStorage.getItem("isogo_sc_photos_v1");
+        if (savedPhotos) uploadedPhotos = JSON.parse(savedPhotos);
+      } catch (e) {}
+
+      renderSchoolSelector();
+      selectSchool("hama");
+      renderPhotoGallery();
+    }
+
+    // ================= 学校選択UI =================
+    function renderSchoolSelector() {
+      const grid = document.getElementById("schoolButtonGrid");
+      grid.innerHTML = "";
+      SCHOOLS.forEach(s => {
+        const btn = document.createElement("button");
+        btn.id = "btn_school_" + s.id;
+        btn.onclick = () => selectSchool(s.id);
+        btn.className = "py-2 px-1 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95 border border-slate-700";
+        btn.innerText = s.name;
+        grid.appendChild(btn);
+      });
+    }
+
+    function selectSchool(schoolId) {
+      currentSchoolId = schoolId;
+      currentCardIndex = 0;
+      const school = getCurrentSchool();
+
+      // ボタンハイライト更新
+      SCHOOLS.forEach(s => {
+        const btn = document.getElementById("btn_school_" + s.id);
+        if (!btn) return;
+        if (s.id === schoolId) {
+          btn.className = "py-2 px-1 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 bg-amber-400 text-slate-900 shadow-md ring-2 ring-white/50";
+          btn.innerHTML = `<span>${s.name}</span><i class="ph-bold ph-check text-xs"></i>`;
+        } else {
+          btn.className = "py-2 px-1 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1 bg-slate-800 text-slate-200 hover:bg-slate-700 active:scale-95 border border-slate-700";
+          btn.innerText = s.name;
+        }
+      });
+
+      // サマリーカードのテーマカラー更新
+      const hero = document.getElementById("schoolHeroCard");
+      hero.className = `rounded-2xl p-3.5 shadow-md text-white transition-all duration-300 relative overflow-hidden ${school.colorClass}`;
+
+      document.getElementById("heroTypeBadge").innerText = school.type;
+      document.getElementById("heroSchoolName").innerText = school.name;
+      document.getElementById("heroAedText").innerText = school.aed;
+      document.getElementById("heroTimeRange").innerText = isSummerSeason() ? school.timeRangeSummer : school.timeRangeWinter;
+      document.getElementById("heroParkingText").innerText = school.parking;
+      document.getElementById("heroBikeText").innerText = school.bike;
+      document.getElementById("heroKeyText").innerText = school.keyPlace;
+      document.getElementById("heroKeyActionText").innerText = school.keyAction;
+      document.getElementById("heroToiletRule").innerText = school.toiletRule;
+      document.getElementById("heroToiletDetail").innerText = school.toiletDetail;
+      document.getElementById("heroWarningText").innerText = school.warningText;
+
+      // チェックカード描画
+      renderActiveCheckCard();
+
+      // ルールリスト初期描画
+      document.getElementById("selectRuleKeyword").value = "";
+      renderRulesList(school.rules);
+    }
+
+    // ================= チェックカード操作ロジック =================
+    function getSchoolCheckState(schoolId) {
+      if (!checkedMap[schoolId]) {
+        checkedMap[schoolId] = {};
+      }
+      return checkedMap[schoolId];
+    }
+
+    function renderActiveCheckCard() {
+      const school = getCurrentSchool();
+      const items = school.checkItems;
+      const total = items.length;
+
+      if (currentCardIndex >= total) currentCardIndex = total - 1;
+      if (currentCardIndex < 0) currentCardIndex = 0;
+
+      const item = items[currentCardIndex];
+      const state = getSchoolCheckState(school.id);
+      const isChecked = !!state[currentCardIndex];
+
+      // プログレス
+      document.getElementById("cardProgressText").innerText = `${currentCardIndex + 1} / ${total}`;
+      const progressPercent = Math.round(((currentCardIndex + 1) / total) * 100);
+      document.getElementById("cardProgressBar").style.width = `${progressPercent}%`;
+
+      // カード内容
+      const cardBox = document.getElementById("activeCheckCard");
+      document.getElementById("cardCategoryBadge").innerText = item.cat;
+      document.getElementById("cardTitle").innerText = item.title;
+      document.getElementById("cardDesc").innerText = item.desc;
+
+      const statusBadge = document.getElementById("cardStatusBadge");
+      const btnCheck = document.getElementById("btnCheckToggle");
+
+      if (isChecked) {
+        cardBox.className = "bg-emerald-50 border-2 border-emerald-400 rounded-xl p-3.5 space-y-2 transition-all duration-200";
+        statusBadge.className = "text-[10px] font-extrabold text-emerald-600 flex items-center gap-1";
+        statusBadge.innerHTML = `<i class="ph-bold ph-check-circle"></i> 確認済`;
+        btnCheck.className = "flex-1 py-2.5 rounded-xl bg-slate-700 hover:bg-slate-800 text-white text-xs font-black shadow active:scale-98 transition flex items-center justify-center gap-1.5";
+        btnCheck.innerHTML = `<i class="ph-bold ph-arrow-right text-base text-amber-300"></i><span>次へ進む</span>`;
+      } else {
+        cardBox.className = "bg-slate-50 border-2 border-slate-200 rounded-xl p-3.5 space-y-2 transition-all duration-200";
+        statusBadge.className = "text-[10px] font-extrabold text-slate-400 flex items-center gap-1";
+        statusBadge.innerHTML = `<i class="ph-bold ph-circle"></i> 未チェック`;
+        btnCheck.className = "flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black shadow-md shadow-emerald-600/20 active:scale-98 transition flex items-center justify-center gap-1.5";
+        btnCheck.innerHTML = `<i class="ph-bold ph-check-circle text-base"></i><span>✓ 確認して次へ</span>`;
+      }
+    }
+
+    function toggleCardCheckAndNext() {
+      const school = getCurrentSchool();
+      const state = getSchoolCheckState(school.id);
+      const isChecked = !!state[currentCardIndex];
+
+      // 未チェックならチェックを入れる
+      if (!isChecked) {
+        state[currentCardIndex] = true;
+        saveChecksToStorage();
+        showToast(`✓ 「${school.checkItems[currentCardIndex].title}」を確認`);
+      }
+
+      // 次のカードへ進む
+      if (currentCardIndex < school.checkItems.length - 1) {
+        currentCardIndex++;
+      } else {
+        showToast("🎉 全てのチェックが完了しました！");
+      }
+      renderActiveCheckCard();
+    }
+
+    function prevCheckCard() {
+      if (currentCardIndex > 0) {
+        currentCardIndex--;
+        renderActiveCheckCard();
+      }
+    }
+
+    function resetCurrentSchoolChecks() {
+      const school = getCurrentSchool();
+      checkedMap[school.id] = {};
+      saveChecksToStorage();
+      currentCardIndex = 0;
+      renderActiveCheckCard();
+      showToast(`${school.name} のチェックをリセットしました`);
+    }
+
+    function saveChecksToStorage() {
+      try {
+        localStorage.setItem("isogo_sc_checks_v6", JSON.stringify(checkedMap));
+      } catch (e) {}
+    }
+
+    // ================= 詳細ルール描画 ＆ キーワード検索 =================
+    function renderRulesList(rules) {
+      const container = document.getElementById("ruleItemsList");
+      container.innerHTML = "";
+
+      if (!rules || rules.length === 0) {
+        container.innerHTML = `<div class="text-xs text-slate-400 py-3 text-center">該当するルールはありません</div>`;
+        return;
+      }
+
+      rules.forEach((r, idx) => {
+        const wrap = document.createElement("div");
+        wrap.className = "border border-slate-200 rounded-xl overflow-hidden bg-slate-50";
+
+        const btn = document.createElement("button");
+        btn.onclick = () => toggleRuleItem(idx);
+        btn.className = "w-full p-2.5 flex items-center justify-between text-left hover:bg-slate-100 transition";
+        btn.innerHTML = `
+          <span class="text-xs font-black text-slate-800">${r.title}</span>
+          <i id="rule_chevron_${idx}" class="ph-bold ph-caret-down text-slate-400 text-xs transition-transform duration-200"></i>
+        `;
+
+        const content = document.createElement("div");
+        content.id = "rule_content_" + idx;
+        content.className = "hidden p-3 pt-1 text-xs text-slate-700 leading-relaxed whitespace-pre-line border-t border-slate-200 bg-white font-medium";
+        content.innerText = r.content;
+
+        wrap.appendChild(btn);
+        wrap.appendChild(content);
+        container.appendChild(wrap);
+      });
+    }
+
+    function toggleRuleItem(idx) {
+      const content = document.getElementById("rule_content_" + idx);
+      const chevron = document.getElementById("rule_chevron_" + idx);
+      if (content.classList.contains("hidden")) {
+        content.classList.remove("hidden");
+        chevron.classList.add("rotate-180");
+      } else {
+        content.classList.add("hidden");
+        chevron.classList.remove("rotate-180");
+      }
+    }
+
+    function filterRulesByKeyword(kw) {
+      const school = getCurrentSchool();
+      if (!kw) {
+        renderRulesList(school.rules);
+        return;
+      }
+      const filtered = school.rules.filter(r => r.group === kw);
+      renderRulesList(filtered);
+      // 絞り込み時はすべて開く
+      filtered.forEach((_, idx) => toggleRuleItem(idx));
+    }
+
+    // ================= アコーディオン開閉共通 =================
+    function toggleSection(contentId, chevronId) {
+      const content = document.getElementById(contentId);
+      const chevron = document.getElementById(chevronId);
+      if (content.classList.contains("hidden")) {
+        content.classList.remove("hidden");
+        if (chevron) chevron.classList.add("rotate-180");
+      } else {
+        content.classList.add("hidden");
+        if (chevron) chevron.classList.remove("rotate-180");
+      }
+    }
+
+    // ================= 写真の直接撮影・圧縮・蓄積ロジック =================
+    function handleDirectCapture(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement("canvas");
+          const maxDim = 1000;
+          let w = img.width;
+          let h = img.height;
+
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+
+          const compressedBase64 = canvas.toDataURL("image/jpeg", 0.75);
+
+          const now = new Date();
+          const timeStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+          const currentSchool = getCurrentSchool();
+          const target = document.getElementById("selectPhotoTarget").value;
+          const category = document.getElementById("selectCategory").value;
+
+          pendingPhotoData = {
+            id: "photo_" + Date.now(),
+            schoolId: currentSchool.id,
+            schoolName: currentSchool.name,
+            target: target,
+            category: category,
+            timeStr: timeStr,
+            timestamp: Date.now(),
+            dataUrl: compressedBase64
+          };
+
+          // プレビュー表示
+          document.getElementById("pendingImgPreview").src = compressedBase64;
+          document.getElementById("pendingMetaText").innerText = `${currentSchool.shortName} • ${target} (${category})`;
+          document.getElementById("pendingTimeText").innerText = timeStr;
+          document.getElementById("pendingUploadArea").classList.remove("hidden");
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function cancelPendingPhoto() {
+      pendingPhotoData = null;
+      document.getElementById("directCameraInput").value = "";
+      document.getElementById("pendingUploadArea").classList.add("hidden");
+    }
+
+    async function uploadPendingPhoto() {
+      if (!pendingPhotoData) return;
+
+      const btn = document.getElementById("btnConfirmUpload");
+      btn.disabled = true;
+      btn.innerHTML = `<i class="ph-bold ph-spinner animate-spin text-base"></i><span>アップロード中...</span>`;
+
+      // 1. アプリ内ストレージに保存（直近20枚まで保持）
+      uploadedPhotos.unshift(pendingPhotoData);
+      if (uploadedPhotos.length > 20) {
+        uploadedPhotos = uploadedPhotos.slice(0, 20);
+      }
+
+      try {
+        localStorage.setItem("isogo_sc_photos_v1", JSON.stringify(uploadedPhotos));
+      } catch (e) {
+        uploadedPhotos = uploadedPhotos.slice(0, 8);
+        try { localStorage.setItem("isogo_sc_photos_v1", JSON.stringify(uploadedPhotos)); } catch (err) {}
+      }
+
+      // 2. クラウド（Googleドライブ Webhook GAS）が設定されていれば送信
+      const gasUrl = localStorage.getItem("isogo_sc_form_url");
+      if (gasUrl && gasUrl.startsWith("http")) {
+        try {
+          await fetch(gasUrl, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify(pendingPhotoData)
+          });
+        } catch (err) {
+          console.warn("Cloud sync notice:", err);
+        }
+      }
+
+      // 完了処理
+      renderPhotoGallery();
+      cancelPendingPhoto();
+      btn.disabled = false;
+      btn.innerHTML = `<i class="ph-bold ph-cloud-arrow-up text-base text-amber-300"></i><span>この写真をアップロード保存する</span>`;
+      showToast("📸 清掃写真をアップロード保存しました！");
+    }
+
+    function renderPhotoGallery() {
+      const container = document.getElementById("photoGalleryList");
+      const emptyNotice = document.getElementById("emptyGalleryNotice");
+      const badgeCount = document.getElementById("uploadedBadgeCount");
+
+      badgeCount.innerText = `${uploadedPhotos.length}枚`;
+
+      if (uploadedPhotos.length === 0) {
+        container.innerHTML = "";
+        emptyNotice.classList.remove("hidden");
+        return;
+      }
+
+      emptyNotice.classList.add("hidden");
+      container.innerHTML = "";
+
+      uploadedPhotos.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs relative group cursor-pointer active:scale-98 transition";
+        card.onclick = () => openPhotoModal(p);
+
+        card.innerHTML = `
+          <div class="relative h-24 bg-slate-900">
+            <img src="${p.dataUrl}" alt="${p.target}" class="w-full h-full object-cover">
+            <span class="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+              ${p.schoolName.replace("小学校", "小")}
+            </span>
+          </div>
+          <div class="p-1.5 bg-slate-50 border-t border-slate-100 text-[10px]">
+            <div class="font-black text-slate-800 truncate">${p.target}</div>
+            <div class="text-[9px] text-slate-400 flex items-center justify-between mt-0.5">
+              <span>${p.category}</span>
+              <span>${p.timeStr.split(" ")[1]}</span>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openPhotoModal(p) {
+      document.getElementById("modalPhotoTitle").innerText = `${p.schoolName} • ${p.target}`;
+      document.getElementById("modalPhotoSub").innerText = `${p.timeStr} • ${p.category}`;
+      document.getElementById("modalPhotoImg").src = p.dataUrl;
+      
+      const btnDel = document.getElementById("modalBtnDelete");
+      btnDel.onclick = function() {
+        deleteStoredPhoto(p.id);
+        closePhotoModal();
+      };
+
+      document.getElementById("modalPhotoView").classList.remove("hidden");
+    }
+
+    function closePhotoModal() {
+      document.getElementById("modalPhotoView").classList.add("hidden");
+    }
+
+    function deleteStoredPhoto(id) {
+      uploadedPhotos = uploadedPhotos.filter(p => p.id !== id);
+      try {
+        localStorage.setItem("isogo_sc_photos_v1", JSON.stringify(uploadedPhotos));
+      } catch (e) {}
+      renderPhotoGallery();
+      showToast("写真を削除しました");
+    }
+
+    function clearAllStoredPhotos() {
+      if (uploadedPhotos.length === 0) return;
+      uploadedPhotos = [];
+      try {
+        localStorage.removeItem("isogo_sc_photos_v1");
+      } catch (e) {}
+      renderPhotoGallery();
+      showToast("蓄積写真をすべて削除しました");
+    }
+
+    // ================= 設定モーダル ＆ ユーティリティ =================
+    function openFormSetupModal() {
+      document.getElementById("inputFormUrl").value = localStorage.getItem("isogo_sc_form_url") || "";
+      document.getElementById("modalFormSetup").classList.remove("hidden");
+    }
+
+    function closeFormSetupModal() {
+      document.getElementById("modalFormSetup").classList.add("hidden");
+    }
+
+    function saveFormUrl() {
+      const url = document.getElementById("inputFormUrl").value.trim();
+      if (!url) {
+        localStorage.removeItem("isogo_sc_form_url");
+        showToast("クラウド連携を解除しました");
+      } else {
+        localStorage.setItem("isogo_sc_form_url", url);
+        showToast("写真保存先URLを保存しました");
+      }
+      closeFormSetupModal();
+    }
+
+    let toastTimer;
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      document.getElementById("toastMsg").innerText = msg;
+      t.classList.remove("opacity-0", "pointer-events-none");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        t.classList.add("opacity-0", "pointer-events-none");
+      }, 2500);
+    }
+
+    window.onload = function() {
+      initApp();
+    };
+  </script>
+</body>
+</html>
